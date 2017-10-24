@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
 from math import pi, sqrt
+from shapely.geometry import Polygon
 
 
 def dist(start, destination):
@@ -9,6 +10,19 @@ def dist(start, destination):
     for i in range(len(start)):
         coord_sum += (start[i] - destination[i]) ** 2
     return sqrt(coord_sum)
+
+
+def dilate_erode(boundary, holes=[], distance=0, resolution=16):
+    p = Polygon(boundary, holes)
+    boundaries = p.buffer(distance, resolution=resolution).boundary
+    holes = []
+    if boundaries.type[:5] == 'Multi':
+        boundary = boundaries[0]
+        for hole_boundary in boundaries[1:]:
+            holes.append(list(hole_boundary.coords))
+    else:
+        boundary = boundaries
+    return list(boundary.coords), holes
 
 
 def free_print_move(start, destination, old_e=0, speed=2200, w=0.42, h=0.2, filament_d=1.75):
