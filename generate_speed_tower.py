@@ -1,13 +1,15 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
-from gcodehelpers import free_print_move, start_sequence, stop_sequence, fan_on
+from gcodehelpers import free_print_move, travel, start_sequence, stop_sequence, fan_on
 
 if __name__ == "__main__":
     filename = "speed_tower.gcode"
     with open(filename, 'w') as f:
         f.write(start_sequence() + "\n")
-        f.write("G0 X65 Y65 Z0.3\n")
+        e = 0.0
+        h = 0.3
+        f.write(travel((65, 65, h)) + "\n")
         points = [(65, 65),
                   (105, 65),
                   (105, 105),
@@ -18,8 +20,6 @@ if __name__ == "__main__":
                   (104.6, 104.6),
                   (64.6, 104.6),
                   (64.6, 64.6)]
-        e = 0.0
-        h = 0.3
         old_x, old_y = points[0]
         for x, y in points:
             e, command = free_print_move((old_x, old_y, h), (x, y, h), old_e=e)

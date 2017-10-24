@@ -19,6 +19,11 @@ def free_print_move(start, destination, old_e=0, speed=2200, w=0.42, h=0.2, fila
         e=new_e, f=speed)
 
 
+def travel(destination, speed=2500):
+    return "G0 X{x:f} Y{y:f} Z{z:f} F{f:d}".format(
+        x=destination[0], y=destination[1], z=destination[2], f=speed)
+
+
 def retract(old_e=0, retract_volume=5, retract_speed=1200, filament_d=1.75):
     retract_length = retract_volume / (pi * (filament_d / 2) ** 2)
     new_e = old_e - retract_length

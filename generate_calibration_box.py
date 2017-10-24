@@ -7,7 +7,9 @@ if __name__ == "__main__":
     filename = "calibration_box.gcode"
     with open(filename, 'w') as f:
         f.write(start_sequence() + "\n")
-        f.write("G0 X65 Y65 Z0.3\n")
+        e = 0.0
+        h = 0.3
+        f.write(travel((65, 65, h)) + "\n")
         points = [(65, 65),
                   (105, 65),
                   (105, 105),
@@ -18,14 +20,12 @@ if __name__ == "__main__":
                   (104.6, 104.6),
                   (64.6, 104.6),
                   (64.6, 64.6)]
-        e = 0.0
-        h = 0.3
         old_x, old_y = points[0]
         for x, y in points:
             e, command = free_print_move((old_x, old_y, h), (x, y, h), old_e=e)
             old_x, old_y = x, y
             f.write(command + "\n")
-        f.write("G0 X70 Y70 Z0.3\n")
+        f.write(travel((70, 70, h)) + "\n")
         points = [(70, 70),
                   (100, 70),
                   (100, 100),
