@@ -19,6 +19,18 @@ def free_print_move(start, destination, old_e=0, speed=2200, w=0.42, h=0.2, fila
         e=new_e, f=speed)
 
 
+def retract(old_e=0, retract_volume=5, retract_speed=1200, filament_d=1.75):
+    retract_length = retract_volume / (pi * (filament_d / 2) ** 2)
+    new_e = old_e - retract_length
+    return new_e, "G1 E{e:f} F{f:d}".format(e=new_e, f=retract_speed)
+
+
+def resume(old_e=0, retract_volume=5, retract_speed=1200, filament_d=1.75):
+    resume_length = retract_volume / (pi * (filament_d / 2) ** 2)
+    new_e = old_e + resume_length
+    return new_e, "G1 E{e:f} F{f:d}".format(e=new_e, f=retract_speed)
+
+
 def start_sequence():
     lines = [
         "M190 S100",
