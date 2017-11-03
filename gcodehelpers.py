@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
-from math import pi, sqrt
+from math import pi, sqrt, acos
 from shapely.geometry import Polygon
 
 
@@ -10,6 +10,26 @@ def dist(start, destination):
     for i in range(len(start)):
         coord_sum += (start[i] - destination[i]) ** 2
     return sqrt(coord_sum)
+
+
+def a_overlap(d, h=0.2):
+    a_circle_part = (h/2)**2*acos(d/h)
+    a_triangle = 0.125*d/2*sqrt(h*h-d*d)
+    return 2*a_circle_part-2*a_triangle
+
+
+def get_line_distance(w=0.42, h=0.2, overlap_factor=0.5):
+    min_distance = h / 2
+    for step in range(1, 32):
+        a = a_overlap(min_distance, h)
+        min_distance = min_distance - (2 * int(h * min_distance - pi * (h / 2)**2 + a < a) - 1) * h / 2 * 0.5**step
+    max_overlap = a
+    interval = h - min_distance
+    d = h - interval / 2
+    for step in range(2, 32):
+        a = a_overlap(d, h)
+        d = d + (2 * int(a > max_overlap * overlap_factor) - 1) * interval * 0.5 ** step
+    return w + d
 
 
 def dilate_erode(boundary, holes=[], distance=0, resolution=16):
