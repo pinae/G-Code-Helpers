@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
-from gcodehelpers import free_print_move, start_sequence, stop_sequence, fan_on
+from gcodehelpers import free_print_move, travel, start_sequence, stop_sequence, fan_on
 
 if __name__ == "__main__":
     filename = "calibration_box.gcode"
