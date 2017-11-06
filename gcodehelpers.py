@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
 from math import pi, sqrt, acos
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiLineString
+from shapely import affinity
 
 
 def dist(start, destination):
@@ -32,6 +33,10 @@ def get_line_distance(w=0.42, h=0.2, overlap_factor=0.5):
     return w + d
 
 
+def set_h(point, h):
+    return point[0], point[1], h
+
+
 def dilate_erode(boundary, holes=[], distance=0, resolution=16):
     p = Polygon(boundary, holes)
     boundaries = p.buffer(distance, resolution=resolution).boundary
@@ -43,6 +48,88 @@ def dilate_erode(boundary, holes=[], distance=0, resolution=16):
     else:
         boundary = boundaries
     return list(boundary.coords), holes
+
+
+def infill(boundary, holes=[], pattern_lines=MultiLineString([])):
+    fill_area = Polygon(boundary, holes)
+    fill_lines = []
+    for line in pattern_lines:
+        intersection = line.intersection(fill_area)
+        if intersection.type[:5] == 'Multi' or intersection.type == 'GeometryCollection':
+            for segment in intersection.geoms:
+                fill_lines.append(segment.coords)
+        else:
+            fill_lines.append(intersection.coords)
+    return fill_lines
+
+
+def line_pattern(distance, angle=45):
+    coords = []
+    for i in range(round(500/distance)):
+        coords.append([(-150+distance*i, -150), (-150+distance*i, 350)])
+    pattern = MultiLineString(coords)
+    return list(affinity.rotate(pattern, angle, origin=(100, 100), use_radians=False).geoms)
+
+
+def print_layer(lines, h, e=0, start_point=(0, 0),
+                travel_speed=2500, print_speed=2200, filament_d=1.75, w=0.42, layer_height=0.2):
+    command_population = [{'commands': "",
+                           'e': e,
+                           'travel_distance': 0,
+                           'remaining_lines': lines,
+                           'last_position': start_point}]
+    remaining = len(lines)
+    beam_width = 10
+    while remaining > 0:
+        new_population = []
+        for candidate in command_population:
+            for line in candidate['remaining_lines']:
+                forward_candidate = {
+                    'commands': candidate['commands'],
+                    'e': candidate['e'],
+                    'travel_distance': candidate['travel_distance'],
+                    'remaining_lines': list(candidate['remaining_lines']),
+                    'last_position': candidate['last_position']
+                }
+                forward_candidate['remaining_lines'].remove(line)
+                if line[0][0] != forward_candidate['last_position'][0] or \
+                   line[0][1] != forward_candidate['last_position'][1]:
+                    forward_candidate['commands'] += travel(set_h(line[0], h), speed=travel_speed) + "\n"
+                    forward_candidate['travel_distance'] += dist(forward_candidate['last_position'], line[0])
+                    forward_candidate['last_position'] = line[0]
+                for point in line:
+                    forward_candidate['e'], cmd = free_print_move(
+                        set_h(start_point, h), set_h(point, h), old_e=forward_candidate['e'],
+                        h=layer_height, speed=print_speed, w=w, filament_d=filament_d)
+                    forward_candidate['commands'] += cmd + "\n"
+                    forward_candidate['last_position'] = point
+                new_population.append(forward_candidate)
+                backward_candidate = {
+                    'commands': candidate['commands'],
+                    'e': candidate['e'],
+                    'travel_distance': candidate['travel_distance'],
+                    'remaining_lines': list(candidate['remaining_lines']),
+                    'last_position': candidate['last_position']
+                }
+                backward_candidate['remaining_lines'].remove(line)
+                if line[-1][0] != backward_candidate['last_position'][0] or \
+                   line[-1][1] != backward_candidate['last_position'][1]:
+                    backward_candidate['commands'] += travel(set_h(line[-1], h), speed=travel_speed) + "\n"
+                    backward_candidate['travel_distance'] += dist(backward_candidate['last_position'], line[-1])
+                    backward_candidate['last_position'] = line[-1]
+                reversed_line = list(line)
+                reversed_line.reverse()
+                for point in reversed_line:
+                    backward_candidate['e'], cmd = free_print_move(
+                        set_h(start_point, h), set_h(point, h), old_e=backward_candidate['e'],
+                        h=layer_height, speed=print_speed, w=w, filament_d=filament_d)
+                    backward_candidate['commands'] += cmd + "\n"
+                    backward_candidate['last_position'] = point
+                new_population.append(backward_candidate)
+        remaining -= 1
+        new_population.sort(key=lambda c: c['travel_distance'])
+        command_population = new_population[:beam_width]
+    return command_population[0]['e'], command_population[0]['commands']
 
 
 def free_print_move(start, destination, old_e=0, speed=2200, w=0.42, h=0.2, filament_d=1.75):
