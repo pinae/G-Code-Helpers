@@ -37,7 +37,14 @@ def set_h(point, h):
     return point[0], point[1], h
 
 
-def dilate_erode(boundary, holes=[], distance=0, resolution=16):
+def offset_coords(coords, offset=(0, 0)):
+    ocs = []
+    for x, y in coords:
+        ocs.append((x + offset[0], y + offset[1]))
+    return ocs
+
+
+def dilate_erode(boundary, holes=[], distance=0, resolution=4):
     p = Polygon(boundary, holes)
     boundaries = p.buffer(distance, resolution=resolution).boundary
     holes = []
@@ -72,14 +79,15 @@ def line_pattern(distance, angle=45):
 
 
 def print_layer(lines, h, e=0, start_point=(0, 0),
-                travel_speed=2500, print_speed=2200, filament_d=1.75, w=0.42, layer_height=0.2):
+                travel_speed=2500, print_speed=1800,
+                filament_d=1.75, w=0.42, layer_height=0.2,
+                beam_width=1):
     command_population = [{'commands': "",
                            'e': e,
                            'travel_distance': 0,
                            'remaining_lines': lines,
                            'last_position': start_point}]
     remaining = len(lines)
-    beam_width = 10
     while remaining > 0:
         new_population = []
         for candidate in command_population:
@@ -98,8 +106,9 @@ def print_layer(lines, h, e=0, start_point=(0, 0),
                     forward_candidate['travel_distance'] += dist(forward_candidate['last_position'], line[0])
                     forward_candidate['last_position'] = line[0]
                 for point in line:
-                    forward_candidate['e'], cmd = free_print_move(
-                        set_h(start_point, h), set_h(point, h), old_e=forward_candidate['e'],
+                    forward_candidate['e'], cmd = print_move(
+                        set_h(forward_candidate['last_position'], h), set_h(point, h),
+                        old_e=forward_candidate['e'],
                         h=layer_height, speed=print_speed, w=w, filament_d=filament_d)
                     forward_candidate['commands'] += cmd + "\n"
                     forward_candidate['last_position'] = point
@@ -119,9 +128,11 @@ def print_layer(lines, h, e=0, start_point=(0, 0),
                     backward_candidate['last_position'] = line[-1]
                 reversed_line = list(line)
                 reversed_line.reverse()
+
                 for point in reversed_line:
-                    backward_candidate['e'], cmd = free_print_move(
-                        set_h(start_point, h), set_h(point, h), old_e=backward_candidate['e'],
+                    backward_candidate['e'], cmd = print_move(
+                        set_h(backward_candidate['last_position'], h), set_h(point, h),
+                        old_e=backward_candidate['e'],
                         h=layer_height, speed=print_speed, w=w, filament_d=filament_d)
                     backward_candidate['commands'] += cmd + "\n"
                     backward_candidate['last_position'] = point
@@ -132,7 +143,38 @@ def print_layer(lines, h, e=0, start_point=(0, 0),
     return command_population[0]['e'], command_population[0]['commands']
 
 
-def free_print_move(start, destination, old_e=0, speed=2200, w=0.42, h=0.2, filament_d=1.75):
+def print_wall(boundary, holes, h, e=0, start_point=(0, 0), count=2, line_overlap_factor=0.5,
+               w=0.42, layer_height=0.3, filament_d=1.75,
+               travel_speed=2500, print_speed=2200):
+    d = get_line_distance(w, layer_height, line_overlap_factor)
+    wall_lines = []
+    for i in range(count):
+        boundary_line, hole_lines = dilate_erode(boundary, holes, distance=-d/2-i*d)
+        wall_lines.append(boundary_line)
+    return print_layer(wall_lines, h=h, e=e, start_point=start_point, layer_height=layer_height,
+                       travel_speed=travel_speed, print_speed=print_speed, filament_d=filament_d, w=w)
+
+
+def print_brim(boundary, e=0, line_count=10, line_overlap_factor=0.5, w=0.42, h=0.3, filament_d=1.75,
+               travel_speed=2500, print_speed=1800):
+    d = get_line_distance(w, h, line_overlap_factor)
+    brim_lines = []
+    for i in range(line_count):
+        brim_lines.append(dilate_erode(boundary, holes=[], distance=d/2+i*d)[0])
+    brim_lines.reverse()
+    commands = ""
+    for line in brim_lines:
+        pos = line[0]
+        commands += travel(set_h(pos, h), speed=travel_speed) + "\n"
+        for point in line[1:]+[line[0]]:
+            e, cmd = print_move(set_h(pos, h), set_h(point, h), old_e=e,
+                                speed=print_speed, w=w, h=h, filament_d=filament_d)
+            commands += cmd + "\n"
+            pos = point
+    return e, commands
+
+
+def print_move(start, destination, old_e=0, speed=1800, w=0.42, h=0.2, filament_d=1.75):
     a = w * h + pi * (h / 2) ** 2
     new_e = old_e + a * dist(start, destination) / (pi * (filament_d / 2) ** 2)
     return new_e, "G1 X{x:f} Y{y:f} Z{z:f} E{e:f} F{f:d}".format(
@@ -192,7 +234,8 @@ def stop_sequence():
         "G28 X0 Y0 ;move X/Y to min endstops, so the head is out of the way",
         "M84 ;steppers off",
         "G90 ;absolute positioning",
-        "M104 S0"
+        "M104 S0",
+        "M117 Finished."
     ]
     return "\n".join(lines)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
-from gcodehelpers import free_print_move, travel, start_sequence, stop_sequence, fan_on
+from gcodehelpers import print_move, travel, start_sequence, stop_sequence, fan_on
 
 if __name__ == "__main__":
     filename = "calibration_box.gcode"
@@ -22,7 +22,7 @@ if __name__ == "__main__":
                   (64.6, 64.6)]
         old_x, old_y = points[0]
         for x, y in points:
-            e, command = free_print_move((old_x, old_y, h), (x, y, h), old_e=e)
+            e, command = print_move((old_x, old_y, h), (x, y, h), old_e=e)
             old_x, old_y = x, y
             f.write(command + "\n")
         f.write(travel((70, 70, h)) + "\n")
@@ -33,7 +33,7 @@ if __name__ == "__main__":
                   (70, 70)]
         for i in range(99):
             for x, y in points:
-                e, command = free_print_move((old_x, old_y, h), (x, y, h), old_e=e)
+                e, command = print_move((old_x, old_y, h), (x, y, h), old_e=e)
                 old_x, old_y = x, y
                 f.write(command + "\n")
             h += 0.2
