@@ -17,10 +17,12 @@ if __name__ == "__main__":
         f.write(cmd + "\n")
         while h <= 10:
             layer_height = 0.3 if h < 0.31 else 0.2
+            if h >= 0.31:
+                f.write(fan_on() + "\n")
             for overlap_index in range(11):
                 f.write(travel((30 + w/2+layer_height/2 + (overlap_index % 4) * 30,
                                 30 + w/2+layer_height/2 + (overlap_index // 4) * 30, h)) + "\n")
-                e, cmd = resume(e, retract_volume=5, filament_d=1.75)
+                e, cmd = resume(e, retract_volume=9, filament_d=1.75)
                 f.write(cmd + "\n")
                 coords = offset_coords(object_coords, (30 + (overlap_index % 4) * 30, 30 + (overlap_index // 4) * 30))
                 if h < 0.35:
@@ -38,17 +40,17 @@ if __name__ == "__main__":
                                           layer_height=layer_height)
                 f.write(commands)
                 # print("e after Infill: {}".format(e))
-                e, cmd = retract(e, retract_volume=5, filament_d=1.75)
+                e, cmd = retract(e, retract_volume=9, filament_d=1.75)
                 f.write(cmd + "\n")
             f.write(travel((30+3*30, 30+2*30, h)) + "\n")
-            e, cmd = resume(e, retract_volume=5, filament_d=1.75)
+            e, cmd = resume(e, retract_volume=9, filament_d=1.75)
             f.write(cmd + "\n")
             e, cmd = print_move((30+3*30, 30+2*30, h), (30+3*30+10, 30+2*30, h), old_e=e, h=layer_height)
             f.write(cmd + "\n")
             f.write(travel((30 + 3 * 30 + 10, 30 + 2 * 30 + 10, h)) + "\n")
             f.write(travel((30 + 3 * 30, 30 + 2 * 30 + 10, h)) + "\n")
             f.write(travel((30 + 3 * 30, 30 + 2 * 30, h)) + "\n")
-            e, cmd = retract(e, retract_volume=5, filament_d=1.75)
+            e, cmd = retract(e, retract_volume=9, filament_d=1.75)
             f.write(cmd + "\n")
             print("Height {} sliced.".format(h))
             h += 0.2
