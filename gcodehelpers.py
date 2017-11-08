@@ -19,7 +19,7 @@ def a_overlap(d, h=0.2):
     return 2*a_circle_part-2*a_triangle
 
 
-def get_line_distance(w=0.42, h=0.2, overlap_factor=0.5):
+def get_line_distance(w=0.42, h=0.2, overlap_factor=0.4):
     min_distance = h / 2
     for step in range(1, 32):
         a = a_overlap(min_distance, h)
@@ -149,7 +149,7 @@ def print_wall(boundary, holes, h, e=0, start_point=(0, 0), count=2, line_overla
     d = get_line_distance(w, layer_height, line_overlap_factor)
     wall_lines = []
     for i in range(count):
-        boundary_line, hole_lines = dilate_erode(boundary, holes, distance=-d/2-i*d)
+        boundary_line, hole_lines = dilate_erode(boundary, holes, distance=-w/2-layer_height/2-i*d)
         wall_lines.append(boundary_line)
     return print_layer(wall_lines, h=h, e=e, start_point=start_point, layer_height=layer_height,
                        travel_speed=travel_speed, print_speed=print_speed, filament_d=filament_d, w=w)
@@ -160,7 +160,7 @@ def print_brim(boundary, e=0, line_count=10, line_overlap_factor=0.5, w=0.42, h=
     d = get_line_distance(w, h, line_overlap_factor)
     brim_lines = []
     for i in range(line_count):
-        brim_lines.append(dilate_erode(boundary, holes=[], distance=d/2+i*d)[0])
+        brim_lines.append(dilate_erode(boundary, holes=[], distance=w/2+h/2-(w+h-d)+i*d)[0])
     brim_lines.reverse()
     commands = ""
     for line in brim_lines:

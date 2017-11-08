@@ -12,12 +12,14 @@ if __name__ == "__main__":
         object_coords = [(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)]
         e = 0.0
         h = 0.3
+        w = 0.42
         e, cmd = retract(e, retract_volume=5, filament_d=1.75)
         f.write(cmd + "\n")
         while h <= 10:
+            layer_height = 0.3 if h < 0.31 else 0.2
             for overlap_index in range(11):
-                d = get_line_distance(0.42, 0.3 if h < 0.31 else 0.2, overlap_index / 10)
-                f.write(travel((30 + d/2 + (overlap_index % 4) * 30, 30 + d/2 + (overlap_index // 4) * 30, h)) + "\n")
+                f.write(travel((30 + w/2+layer_height/2 + (overlap_index % 4) * 30,
+                                30 + w/2+layer_height/2 + (overlap_index // 4) * 30, h)) + "\n")
                 e, cmd = resume(e, retract_volume=5, filament_d=1.75)
                 f.write(cmd + "\n")
                 coords = offset_coords(object_coords, (30 + (overlap_index % 4) * 30, 30 + (overlap_index // 4) * 30))
@@ -25,18 +27,29 @@ if __name__ == "__main__":
                     e, commands = print_brim(coords, e, h=h, line_overlap_factor=overlap_index/10)
                     f.write(commands)
                     # print("e after Brim: {}".format(e))
-                e, commands = print_wall(coords, [], h, e, start_point=(0, 0), line_overlap_factor=overlap_index/10)
+                e, commands = print_wall(coords, [], h, e, start_point=(0, 0), line_overlap_factor=overlap_index / 10)
                 f.write(commands)
                 # print("e after Wall: {}".format(e))
+                d = get_line_distance(w, layer_height, overlap_index / 10)
                 infill_boundary, infill_holes = dilate_erode(coords, distance=-d/2-2*d)
                 infill_lines = infill(infill_boundary, infill_holes,
                                       pattern_lines=line_pattern(d, angle=45 if h % 0.4 > 0.15 else -45))
                 e, commands = print_layer(infill_lines, e=e, h=h, start_point=(0, 0),
-                                          layer_height=0.3 if h < 0.31 else 0.2)
+                                          layer_height=layer_height)
                 f.write(commands)
                 # print("e after Infill: {}".format(e))
                 e, cmd = retract(e, retract_volume=5, filament_d=1.75)
                 f.write(cmd + "\n")
+            f.write(travel((30+3*30, 30+2*30, h)) + "\n")
+            e, cmd = resume(e, retract_volume=5, filament_d=1.75)
+            f.write(cmd + "\n")
+            e, cmd = print_move((30+3*30, 30+2*30, h), (30+3*30+10, 30+2*30, h), old_e=e, h=layer_height)
+            f.write(cmd + "\n")
+            f.write(travel((30 + 3 * 30 + 10, 30 + 2 * 30 + 10, h)) + "\n")
+            f.write(travel((30 + 3 * 30, 30 + 2 * 30 + 10, h)) + "\n")
+            f.write(travel((30 + 3 * 30, 30 + 2 * 30, h)) + "\n")
+            e, cmd = retract(e, retract_volume=5, filament_d=1.75)
+            f.write(cmd + "\n")
             print("Height {} sliced.".format(h))
             h += 0.2
         f.write(stop_sequence())
