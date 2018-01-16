@@ -72,7 +72,7 @@ def infill(boundary, holes=[], pattern_lines=MultiLineString([])):
 
 def line_pattern(distance, angle=45):
     coords = []
-    for i in range(round(500/distance)):
+    for i in range(int(round(500/distance))):
         coords.append([(-150+distance*i, -150), (-150+distance*i, 350)])
     pattern = MultiLineString(coords)
     return list(affinity.rotate(pattern, angle, origin=(100, 100), use_radians=False).geoms)
