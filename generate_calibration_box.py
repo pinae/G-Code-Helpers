@@ -16,9 +16,9 @@ if __name__ == "__main__":
                   (65, 105),
                   (65, 65),
                   (64.6, 64.6),
-                  (104.6, 64.6),
-                  (104.6, 104.6),
-                  (64.6, 104.6),
+                  (105.4, 64.6),
+                  (105.4, 105.4),
+                  (64.6, 105.4),
                   (64.6, 64.6)]
         old_x, old_y = points[0]
         for x, y in points:
@@ -39,5 +39,6 @@ if __name__ == "__main__":
             h += 0.2
             if i == 0:
                 f.write(fan_on() + "\n")
+            f.write(travel((70, 70, h)) + "\n")
         f.write(stop_sequence())
     print("File {0} written.".format(filename))
