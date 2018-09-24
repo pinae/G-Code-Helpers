@@ -42,7 +42,7 @@ if __name__ == "__main__":
                 f.write(command + "\n")
             h += 0.2
             if i % 10 == 9:
-                jerk += 300
+                jerk += 1
                 f.write("M205 X" + str(jerk) + " Y" + str(jerk) + "\n")
             if i == 0:
                 f.write(fan_on() + "\n")
